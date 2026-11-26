@@ -1,4 +1,5 @@
 
+
 from flask import Flask, render_template, request, jsonify
 import pickle
 import numpy as np
@@ -39,7 +40,7 @@ def home():
 def predict():
 
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
 
         # Read numerical inputs
         age = int(data["age"])
@@ -54,7 +55,10 @@ def predict():
         alcohol = data["alcohol"]
         family_history = data["family_history"]
 
+        # -----------------------------------
         # Validate numerical inputs
+        # -----------------------------------
+
         if not 18 <= age <= 80:
             raise ValueError("Age must be between 18 and 80.")
 
@@ -79,13 +83,13 @@ def predict():
 
         alcohol_encoded = encoders["alcohol"].transform([alcohol])[0]
 
-        family_history_encoded = encoders["family_history"].transform(
-            [family_history]
-        )[0]
+        family_history_encoded = encoders[
+            "family_history"
+        ].transform([family_history])[0]
 
         # -----------------------------------
-        # Prepare input data
-        # Keep the original feature order
+        # Prepare model input
+        # Maintain original training feature order
         # -----------------------------------
 
         input_data = [[
@@ -108,35 +112,90 @@ def predict():
 
         prediction = model.predict(input_array)
 
-        probabilities = model.predict_proba(input_array)
+        probabilities = model.predict_proba(input_array)[0]
+
+        predicted_class = prediction[0]
 
         risk_label = encoders["risk_level"].inverse_transform(
-            [prediction[0]]
+            [predicted_class]
         )[0]
 
-        # Model confidence percentage
-        risk_percentage = float(np.max(probabilities[0]) * 100)
-
         # -----------------------------------
-        # Lifestyle factors for bar chart
+        # Model confidence
         # -----------------------------------
 
-        factors = {
-            "Diet": int(diet_encoded),
+        risk_percentage = float(np.max(probabilities) * 100)
+
+        # -----------------------------------
+        # Pie Chart Data
+        # Probability of every risk category
+        # -----------------------------------
+
+        risk_distribution = []
+
+        for class_value, probability in zip(
+            model.classes_, probabilities
+        ):
+
+            label = encoders["risk_level"].inverse_transform(
+                [class_value]
+            )[0]
+
+            risk_distribution.append({
+                "label": str(label),
+                "percentage": round(float(probability) * 100, 2)
+            })
+
+        # -----------------------------------
+        # Lifestyle Factors Chart
+        # Numerical features
+        # -----------------------------------
+
+        lifestyle_factors = {
             "Exercise Days": exercise_days,
             "Sleep Hours": sleep,
-            "Stress": int(stress_encoded),
             "BMI": bmi
         }
 
+        # -----------------------------------
+        # Categorical Lifestyle Information
+        # Display original values, not encoded values
+        # -----------------------------------
+
+        categorical_factors = {
+            "Diet": str(diet),
+            "Stress": str(stress),
+            "Smoking": str(smoking),
+            "Alcohol": str(alcohol),
+            "Family History": str(family_history)
+        }
+
+        # -----------------------------------
+        # Final Response
+        # -----------------------------------
+
         return jsonify({
+
             "success": True,
+
             "risk_label": str(risk_label),
+
+            # Model confidence, NOT actual health risk percentage
             "risk_percentage": round(risk_percentage, 2),
-            "factors": factors
+
+            # Pie chart
+            "risk_distribution": risk_distribution,
+
+            # Lifestyle bar chart
+            "factors": lifestyle_factors,
+
+            # Readable categorical values
+            "categorical_factors": categorical_factors
+
         })
 
     except Exception as e:
+
         return jsonify({
             "success": False,
             "error": str(e)
@@ -149,3 +208,4 @@ def predict():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
