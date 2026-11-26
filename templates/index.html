@@ -1,341 +1,902 @@
+
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Medical Health Risk Predictor</title>
-    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: Arial, sans-serif;
-            background: linear-gradient(135deg, #0f172a, #172554, #1e3a5f);
-            color: #f8fafc; min-height: 100vh; padding: 30px 15px;
-        }
-        .container { max-width: 1000px; margin: auto; }
-        .header { text-align: center; margin-bottom: 30px; }
-        .header h1 { font-size: 32px; color: #60a5fa; margin-bottom: 12px; }
-        .header p { color: #cbd5e1; margin-bottom: 8px; }
-        .card {
-            background: rgba(30, 41, 59, .95); border: 1px solid #334155;
-            border-radius: 16px; padding: 28px; margin-bottom: 25px;
-            box-shadow: 0 10px 30px rgba(0,0,0,.25);
-        }
-        .card h2 { color: #93c5fd; margin-bottom: 24px; font-size: 22px; }
-        .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 25px; }
-        .form-group { display: flex; flex-direction: column; min-width: 0; }
-        label { color: #e2e8f0; font-weight: bold; margin-bottom: 12px; }
-        select {
-            width: 100%; padding: 12px; border-radius: 8px;
-            border: 1px solid #475569; background: #0f172a;
-            color: white; font-size: 15px;
-        }
-        input[type="range"] { width: 100%; accent-color: #38bdf8; cursor: pointer; }
-        .range-info { display: flex; justify-content: space-between; color: #94a3b8; font-size: 12px; margin-top: 8px; }
-        .range-value { color: #38bdf8; font-weight: bold; font-size: 18px; margin-bottom: 10px; }
-        .predict-btn {
-            display: block; width: 100%; margin-top: 30px; padding: 15px;
-            border: none; border-radius: 9px;
-            background: linear-gradient(90deg, #0284c7, #2563eb);
-            color: white; font-size: 17px; font-weight: bold; cursor: pointer; transition: .3s;
-        }
-        .predict-btn:hover { background: linear-gradient(90deg, #0369a1, #1d4ed8); transform: translateY(-2px); }
-        .predict-btn:disabled { opacity: .6; cursor: wait; }
-        .result { display: none; text-align: center; border: 1px solid #2563eb; }
-        .result h2 { margin-bottom: 18px; }
-        .risk-category { font-size: 28px; font-weight: bold; color: #4ade80; margin: 15px 0; }
-        .risk-percentage { font-size: 25px; color: #38bdf8; font-weight: bold; margin-top: 12px; }
-        .result-caption { color: #cbd5e1; line-height: 1.6; }
-        .chart-grid { display: none; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; margin-bottom: 25px; }
-        .chart-card {
-            min-width: 0; background: #14213d; border: 1px solid #334155;
-            border-radius: 14px; padding: 15px;
-        }
-        .chart-card h3 { color: #93c5fd; text-align: center; margin: 10px 0; }
-        .chart { width: 100%; height: 350px; }
-        .chart-note { color: #94a3b8; font-size: 12px; line-height: 1.5; padding: 0 8px 8px; }
-        .medical-disclaimer {
-            display: none; background: #332b18; border: 1px solid #a8791b;
-            border-left: 5px solid #e0a126; padding: 18px 20px;
-            margin: 0 0 25px; border-radius: 8px; color: #f8e7b0;
-        }
-        .medical-disclaimer h3 { color: #fbbf24; margin-bottom: 9px; font-size: 17px; }
-        .medical-disclaimer p { margin: 0; line-height: 1.7; font-size: 14px; }
-        .error {
-            display: none; background: #7f1d1d; border: 1px solid #ef4444;
-            color: white; padding: 14px; border-radius: 8px; margin-top: 20px;
-        }
-        @media (max-width: 700px) {
-            .form-grid, .chart-grid { grid-template-columns: 1fr; }
-            .header h1 { font-size: 25px; }
-            .card { padding: 20px; }
-            .chart { height: 310px; }
-        }
-    </style>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Medical Health Risk Predictor</title>
+
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+
+<style>
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 25px 15px;
+    font-family: Arial, sans-serif;
+    color: #edf5ff;
+
+    background:
+        radial-gradient(circle at top left, #12345a, transparent 40%),
+        linear-gradient(135deg, #06111f, #0a1d33, #071426);
+}
+
+.container {
+    max-width: 1100px;
+    margin: auto;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+header h1 {
+    font-size: 34px;
+    margin-bottom: 10px;
+}
+
+header p {
+    color: #a9bdd3;
+}
+
+.byline {
+    color: #36c5f0;
+    margin-top: 10px;
+}
+
+.panel {
+    background: linear-gradient(145deg, #132c49, #0c1f35);
+    border: 1px solid rgba(177,207,237,.16);
+    border-radius: 16px;
+    padding: 25px;
+    margin-bottom: 22px;
+    box-shadow: 0 15px 35px rgba(0,0,0,.2);
+}
+
+h2 {
+    margin-top: 0;
+    margin-bottom: 22px;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 25px;
+}
+
+.field label {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    font-weight: bold;
+}
+
+.value {
+    color: #36c5f0;
+}
+
+input[type="range"] {
+    width: 100%;
+    accent-color: #36c5f0;
+    cursor: pointer;
+}
+
+select {
+    width: 100%;
+    padding: 12px;
+    background: #0a1b2e;
+    color: white;
+    border: 1px solid #31516e;
+    border-radius: 8px;
+    font-size: 15px;
+}
+
+.range-limits {
+    display: flex;
+    justify-content: space-between;
+    color: #a9bdd3;
+    font-size: 12px;
+    margin-top: 6px;
+}
+
+.actions {
+    text-align: center;
+    margin-top: 30px;
+}
+
+button {
+    padding: 14px 35px;
+    border: none;
+    border-radius: 9px;
+    background: linear-gradient(90deg, #36c5f0, #62e0c1);
+    color: #041321;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+button:disabled {
+    opacity: .6;
+    cursor: wait;
+}
+
+.message {
+    display: none;
+    margin-top: 20px;
+    padding: 13px;
+    border-radius: 8px;
+}
+
+.error {
+    display: block;
+    background: rgba(180,40,55,.2);
+    border: 1px solid rgba(255,100,110,.3);
+    color: #ffd8d8;
+}
+
+.result {
+    display: none;
+}
+
+.result-main {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.risk-name {
+    font-size: 30px;
+    font-weight: bold;
+    margin-top: 8px;
+}
+
+.risk-score {
+    font-size: 38px;
+    font-weight: bold;
+    color: #72def8;
+}
+
+.subtle {
+    color: #a9bdd3;
+    font-size: 13px;
+}
+
+.charts {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+.chart-card {
+    background: rgba(5,19,34,.5);
+    border: 1px solid rgba(177,207,237,.16);
+    border-radius: 12px;
+    padding: 12px;
+    min-width: 0;
+}
+
+.chart-card h3 {
+    font-size: 16px;
+    margin: 10px;
+}
+
+.chart {
+    width: 100%;
+    min-height: 330px;
+}
+
+.disclaimer {
+    color: #c0d0e1;
+    line-height: 1.7;
+    font-size: 13px;
+    border-left: 3px solid #e6b85c;
+    padding-left: 14px;
+}
+
+@media(max-width: 700px) {
+
+    .form-grid,
+    .charts {
+        grid-template-columns: 1fr;
+    }
+
+    .panel {
+        padding: 18px;
+    }
+
+}
+
+</style>
+
 </head>
+
 <body>
+
 <div class="container">
-    <header class="header">
-        <h1>Medical Health Risk Predictor</h1>
-        <p>By Waseem Roshan</p>
-        <p>Enter your details to view the model-predicted health-risk category.</p>
-    </header>
 
-    <section class="card">
-        <h2>Enter Your Health Details</h2>
-        <div class="form-grid">
-            <div class="form-group">
-                <label for="age">Age</label>
-                <div class="range-value"><span id="ageValue">25</span> years</div>
-                <input type="range" id="age" min="18" max="80" value="25" oninput="updateValue('age','ageValue')">
-                <div class="range-info"><span>18</span><span>80</span></div>
-            </div>
+<header>
 
-            <div class="form-group">
-                <label for="diet">Diet Quality</label>
-                <select id="diet">
-                    <option value="Poor">Poor</option>
-                    <option value="Average" selected>Average</option>
-                    <option value="Good">Good</option>
-                </select>
-            </div>
+<h1>Medical Health Risk Predictor</h1>
 
-            <div class="form-group">
-                <label for="exercise_days">Exercise Days per Week</label>
-                <div class="range-value"><span id="exerciseValue">3</span> days</div>
-                <input type="range" id="exercise_days" min="0" max="7" value="3" oninput="updateValue('exercise_days','exerciseValue')">
-                <div class="range-info"><span>0</span><span>7</span></div>
-            </div>
+<p>
+Enter your health information to generate a machine-learning prediction.
+</p>
 
-            <div class="form-group">
-                <label for="sleep">Sleep Hours per Day</label>
-                <div class="range-value"><span id="sleepValue">6</span> hours</div>
-                <input type="range" id="sleep" min="2" max="12" value="6" oninput="updateValue('sleep','sleepValue')">
-                <div class="range-info"><span>2</span><span>12</span></div>
-            </div>
-
-            <div class="form-group">
-                <label for="stress">Stress Level</label>
-                <select id="stress">
-                    <option value="Low">Low</option>
-                    <option value="Medium" selected>Medium</option>
-                    <option value="High">High</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="bmi">BMI</label>
-                <div class="range-value"><span id="bmiValue">22.0</span></div>
-                <input type="range" id="bmi" min="10" max="40" step="0.1" value="22" oninput="updateValue('bmi','bmiValue',1)">
-                <div class="range-info"><span>10</span><span>40</span></div>
-            </div>
-
-            <div class="form-group">
-                <label for="smoking">Smoking</label>
-                <select id="smoking">
-                    <option value="Yes">Yes</option>
-                    <option value="No" selected>No</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="alcohol">Alcohol Consumption</label>
-                <select id="alcohol">
-                    <option value="Low" selected>Low</option>
-                    <option value="Medium">Medium</option>
-                    <option value="High">High</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="family_history">Family History of Disease</label>
-                <select id="family_history">
-                    <option value="Yes">Yes</option>
-                    <option value="No" selected>No</option>
-                </select>
-            </div>
-        </div>
-
-        <button class="predict-btn" id="predictBtn" onclick="predictRisk()">Predict Risk</button>
-        <div class="error" id="errorMessage" role="alert"></div>
-    </section>
-
-    <section class="card result" id="resultCard" aria-live="polite">
-        <h2>Prediction Result</h2>
-        <p class="result-caption">Predicted Health Risk Category</p>
-        <div class="risk-category" id="riskCategory"></div>
-        <p class="result-caption">Model Confidence in the Predicted Category</p>
-        <div class="risk-percentage" id="riskPercentage"></div>
-        <p class="note">This percentage represents the model's confidence in its selected category. It is not a medically established probability that you have or will develop a disease.</p>
-    </section>
-
-    <section class="chart-grid" id="chartGrid">
-        <div class="chart-card">
-            <h3>Model-Predicted Class Probabilities</h3>
-            <div id="pieChart" class="chart"></div>
-            <p class="chart-note">The chart displays the model's estimated probability distribution across its available prediction classes.</p>
-        </div>
-        <div class="chart-card">
-            <h3>Numerical Input Values</h3>
-            <div id="barChart" class="chart"></div>
-            <p class="chart-note">These inputs use different units (years, days, hours and BMI). Bar heights should not be compared as if they shared one measurement scale.</p>
-        </div>
-    </section>
-
-    <section class="medical-disclaimer" id="medicalDisclaimer">
-        <h3>⚠️ Medical Disclaimer</h3>
-        <p>
-            This application uses a machine learning model to generate an educational prediction.
-            Its predictions and probability percentages have not been medically validated and are
-            not a medical diagnosis, clinical assessment, or substitute for professional medical
-            advice. Model confidence and class probabilities do not represent a person's actual
-            medical risk. Do not make healthcare decisions based on this result. Please consult a
-            qualified healthcare professional for an appropriate medical evaluation.
-        </p>
-    </section>
+<div class="byline">
+By Waseem Roshan
 </div>
 
+</header>
+
+
+<!-- INPUT FORM -->
+
+<section class="panel">
+
+<h2>Personal Health Information</h2>
+
+<form id="predictionForm">
+
+<div class="form-grid">
+
+<!-- Age -->
+
+<div class="field">
+
+<label>
+Age
+<span class="value" id="ageValue">25</span>
+</label>
+
+<input
+    type="range"
+    id="age"
+    min="18"
+    max="80"
+    value="25"
+    step="1"
+>
+
+<div class="range-limits">
+<span>18</span>
+<span>80 years</span>
+</div>
+
+</div>
+
+
+<!-- Diet -->
+
+<div class="field">
+
+<label>Diet</label>
+
+<select id="diet">
+
+<option>Poor</option>
+<option selected>Average</option>
+<option>Good</option>
+
+</select>
+
+</div>
+
+
+<!-- Exercise -->
+
+<div class="field">
+
+<label>
+Exercise Days
+<span class="value" id="exercise_daysValue">3</span>
+</label>
+
+<input
+    type="range"
+    id="exercise_days"
+    min="0"
+    max="7"
+    value="3"
+    step="1"
+>
+
+<div class="range-limits">
+<span>0 days</span>
+<span>7 days</span>
+</div>
+
+</div>
+
+
+<!-- Sleep -->
+
+<div class="field">
+
+<label>
+Sleep Hours
+<span class="value" id="sleepValue">6</span>
+</label>
+
+<input
+    type="range"
+    id="sleep"
+    min="2"
+    max="12"
+    value="6"
+    step="0.5"
+>
+
+<div class="range-limits">
+<span>2 hours</span>
+<span>12 hours</span>
+</div>
+
+</div>
+
+
+<!-- Stress -->
+
+<div class="field">
+
+<label>Stress Level</label>
+
+<select id="stress">
+
+<option>Low</option>
+<option selected>Medium</option>
+<option>High</option>
+
+</select>
+
+</div>
+
+
+<!-- BMI -->
+
+<div class="field">
+
+<label>
+BMI
+<span class="value" id="bmiValue">22.0</span>
+</label>
+
+<input
+    type="range"
+    id="bmi"
+    min="10"
+    max="40"
+    value="22"
+    step="0.1"
+>
+
+<div class="range-limits">
+<span>10</span>
+<span>40</span>
+</div>
+
+</div>
+
+
+<!-- Smoking -->
+
+<div class="field">
+
+<label>Smoking</label>
+
+<select id="smoking">
+
+<option>No</option>
+<option>Yes</option>
+
+</select>
+
+</div>
+
+
+<!-- Alcohol -->
+
+<div class="field">
+
+<label>Alcohol Consumption</label>
+
+<select id="alcohol">
+
+<option>Low</option>
+<option selected>Medium</option>
+<option>High</option>
+
+</select>
+
+</div>
+
+
+<!-- Family History -->
+
+<div class="field">
+
+<label>Family History</label>
+
+<select id="family_history">
+
+<option>No</option>
+<option>Yes</option>
+
+</select>
+
+</div>
+
+</div>
+
+
+<div class="actions">
+
+<button type="submit" id="predictButton">
+Predict Health Risk
+</button>
+
+</div>
+
+<div id="errorMessage" class="message"></div>
+
+</form>
+
+</section>
+
+
+<!-- RESULT -->
+
+<section class="panel result" id="resultSection">
+
+<h2>Prediction Result</h2>
+
+<div class="result-main">
+
+<div>
+
+<div class="subtle">
+Model Predicted Class
+</div>
+
+<div class="risk-name" id="riskLabel">
+--
+</div>
+
+</div>
+
+
+<div>
+
+<div class="subtle">
+Model Confidence
+</div>
+
+<div class="risk-score" id="riskPercentage">
+--
+</div>
+
+</div>
+
+</div>
+
+<p class="subtle">
+This percentage represents the model's confidence in its predicted class,
+not a medically validated probability of developing a health condition.
+</p>
+
+</section>
+
+
+<!-- PLOTLY CHARTS -->
+
+<section class="panel result" id="chartsSection">
+
+<h2>Prediction Visualizations</h2>
+
+<div class="charts">
+
+<div class="chart-card">
+
+<h3>Model-Predicted Class Probabilities</h3>
+
+<div id="pieChart" class="chart"></div>
+
+</div>
+
+
+<div class="chart-card">
+
+<h3>Entered Lifestyle Factors</h3>
+
+<div id="barChart" class="chart"></div>
+
+</div>
+
+</div>
+
+</section>
+
+
+<!-- DISCLAIMER -->
+
+<section class="panel">
+
+<h2>Medical Disclaimer</h2>
+
+<p class="disclaimer">
+
+This application is developed for educational and demonstration purposes only.
+Predictions are generated by a machine-learning model and have not been
+medically validated.
+
+The displayed model confidence is not a diagnosis or a measure of actual
+clinical risk. This application should not be used to make medical decisions
+or replace professional medical advice, diagnosis, or treatment.
+
+</p>
+
+</section>
+
+</div>
+
+
 <script>
-    function updateValue(inputId, outputId, decimals = 0) {
-        const value = parseFloat(document.getElementById(inputId).value);
-        document.getElementById(outputId).textContent = value.toFixed(decimals);
-    }
 
-    async function predictRisk() {
-        const button = document.getElementById("predictBtn");
-        const errorBox = document.getElementById("errorMessage");
-        const resultCard = document.getElementById("resultCard");
-        const chartGrid = document.getElementById("chartGrid");
-        const disclaimer = document.getElementById("medicalDisclaimer");
+// ------------------------------------
+// Update Slider Values
+// ------------------------------------
 
-        button.disabled = true;
-        button.textContent = "Predicting...";
-        errorBox.style.display = "none";
+const rangeIds = [
+    "age",
+    "exercise_days",
+    "sleep",
+    "bmi"
+];
 
-        const inputData = {
-            age: Number(document.getElementById("age").value),
-            diet: document.getElementById("diet").value,
-            exercise_days: Number(document.getElementById("exercise_days").value),
-            sleep: Number(document.getElementById("sleep").value),
-            stress: document.getElementById("stress").value,
-            bmi: Number(document.getElementById("bmi").value),
-            smoking: document.getElementById("smoking").value,
-            alcohol: document.getElementById("alcohol").value,
-            family_history: document.getElementById("family_history").value
-        };
+rangeIds.forEach(id => {
 
-        try {
-            const response = await fetch("/predict", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(inputData)
-            });
+    const slider = document.getElementById(id);
 
-            const result = await response.json();
-            if (!response.ok || !result.success) {
-                throw new Error(result.error || "Prediction failed.");
-            }
+    const output = document.getElementById(
+        id + "Value"
+    );
 
-            if (!Array.isArray(result.risk_distribution) || result.risk_distribution.length === 0) {
-                throw new Error("The backend response is missing risk_distribution. Update the /predict route to return the probability for each prediction class.");
-            }
+    function updateValue() {
 
-            resultCard.style.display = "block";
-            chartGrid.style.display = "grid";
-            disclaimer.style.display = "block";
+        if (id === "bmi") {
 
-            document.getElementById("riskCategory").textContent = result.risk_label;
-            document.getElementById("riskPercentage").textContent =
-                Number(result.risk_percentage).toFixed(2) + "%";
+            output.textContent =
+                Number(slider.value).toFixed(1);
 
-            createPieChart(result.risk_distribution);
-            createBarChart(inputData);
+        } else {
 
-            resultCard.scrollIntoView({ behavior: "smooth", block: "center" });
-        } catch (error) {
-            errorBox.textContent = error.message;
-            errorBox.style.display = "block";
-        } finally {
-            button.disabled = false;
-            button.textContent = "Predict Risk";
+            output.textContent = slider.value;
+
         }
+
     }
 
-    function createPieChart(riskDistribution) {
-        const labels = riskDistribution.map(item => item.label);
-        const values = riskDistribution.map(item => Number(item.percentage));
+    slider.addEventListener("input", updateValue);
 
-        const data = [{
-            type: "pie",
-            hole: 0.48,
-            labels: labels,
-            values: values,
-            textinfo: "label+percent",
-            textposition: "inside",
-            marker: {
-                colors: ["#38bdf8", "#818cf8", "#34d399", "#fbbf24", "#f472b6"],
-                line: { color: "#14213d", width: 3 }
+    updateValue();
+
+});
+
+
+// ------------------------------------
+// Prediction Form
+// ------------------------------------
+
+const form = document.getElementById(
+    "predictionForm"
+);
+
+const button = document.getElementById(
+    "predictButton"
+);
+
+const errorBox = document.getElementById(
+    "errorMessage"
+);
+
+
+form.addEventListener("submit", async function(event) {
+
+    event.preventDefault();
+
+    errorBox.style.display = "none";
+    errorBox.textContent = "";
+
+    button.disabled = true;
+    button.textContent = "Predicting...";
+
+
+    // --------------------------------
+    // Collect Input Values
+    // --------------------------------
+
+    const payload = {
+
+        age: Number(
+            document.getElementById("age").value
+        ),
+
+        diet: document.getElementById("diet").value,
+
+        exercise_days: Number(
+            document.getElementById("exercise_days").value
+        ),
+
+        sleep: Number(
+            document.getElementById("sleep").value
+        ),
+
+        stress: document.getElementById("stress").value,
+
+        bmi: Number(
+            document.getElementById("bmi").value
+        ),
+
+        smoking: document.getElementById("smoking").value,
+
+        alcohol: document.getElementById("alcohol").value,
+
+        family_history: document.getElementById(
+            "family_history"
+        ).value
+
+    };
+
+
+    try {
+
+        // ----------------------------
+        // Send Data to Flask
+        // ----------------------------
+
+        const response = await fetch("/predict", {
+
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json"
             },
-            hovertemplate: "%{label}: %{value:.2f}%<extra></extra>"
-        }];
 
-        const layout = {
-            paper_bgcolor: "#14213d",
-            plot_bgcolor: "#14213d",
-            font: { color: "#f8fafc", size: 13 },
-            showlegend: true,
-            legend: { orientation: "h", y: -0.12 },
-            margin: { l: 15, r: 15, t: 20, b: 45 }
-        };
+            body: JSON.stringify(payload)
 
-        Plotly.react("pieChart", data, layout, { responsive: true, displayModeBar: false });
-    }
+        });
 
-    function createBarChart(inputData) {
-        const labels = ["Age (years)", "Exercise (days/week)", "Sleep (hours/day)", "BMI"];
-        const values = [
-            Number(inputData.age),
-            Number(inputData.exercise_days),
-            Number(inputData.sleep),
-            Number(inputData.bmi)
-        ];
-        const units = ["years", "days/week", "hours/day", "BMI"];
 
-        const data = [{
-            x: labels,
-            y: values,
-            type: "bar",
-            text: values.map((value, i) => `${value} ${units[i]}`),
-            textposition: "outside",
-            cliponaxis: false,
-            marker: {
-                color: ["#38bdf8", "#818cf8", "#34d399", "#fbbf24"],
-                line: { color: "#e2e8f0", width: 1 }
+        const result = await response.json();
+
+
+        if (!response.ok || !result.success) {
+
+            throw new Error(
+                result.error || "Prediction failed."
+            );
+
+        }
+
+
+        // ----------------------------
+        // Display Prediction
+        // ----------------------------
+
+        document.getElementById(
+            "riskLabel"
+        ).textContent = result.risk_label;
+
+
+        document.getElementById(
+            "riskPercentage"
+        ).textContent =
+            Number(result.risk_percentage).toFixed(2) + "%";
+
+
+        document.getElementById(
+            "resultSection"
+        ).style.display = "block";
+
+
+        document.getElementById(
+            "chartsSection"
+        ).style.display = "block";
+
+
+        // ----------------------------
+        // Risk Distribution
+        // ----------------------------
+
+        const distribution = result.risk_distribution;
+
+        if (!Array.isArray(distribution) || distribution.length === 0) {
+            throw new Error("No risk distribution was returned by the server.");
+        }
+
+        const labels = distribution.map(
+            item => item.label
+        );
+
+        const values = distribution.map(
+            item => Number(item.percentage)
+        );
+
+
+        // ----------------------------
+        // Plotly Pie Chart
+        // ----------------------------
+
+        Plotly.newPlot(
+
+            "pieChart",
+
+            [{
+
+                type: "pie",
+
+                labels: labels,
+
+                values: values,
+
+                hole: 0.4,
+
+                textinfo: "label+percent",
+
+                hovertemplate:
+                    "%{label}: %{value:.2f}%<extra></extra>"
+
+            }],
+
+            {
+
+                paper_bgcolor: "rgba(0,0,0,0)",
+
+                plot_bgcolor: "rgba(9,27,46,0.7)",
+
+                font: {
+                    color: "#edf5ff"
+                },
+
+                showlegend: true,
+
+                margin: {
+                    t: 20,
+                    r: 15,
+                    b: 35,
+                    l: 15
+                }
+
             },
-            hovertemplate: "%{x}: %{text}<extra></extra>"
-        }];
 
-        const layout = {
-            paper_bgcolor: "#14213d",
-            plot_bgcolor: "#1e293b",
-            font: { color: "#f8fafc" },
-            margin: { l: 45, r: 20, t: 30, b: 85 },
-            xaxis: {
-                tickfont: { color: "#cbd5e1" },
-                gridcolor: "#334155",
-                tickangle: -15
-            },
-            yaxis: {
-                title: "Entered value (units differ)",
-                titlefont: { color: "#cbd5e1" },
-                tickfont: { color: "#cbd5e1" },
-                gridcolor: "#334155",
-                rangemode: "tozero"
+            {
+                responsive: true,
+                displayModeBar: false
             }
-        };
 
-        Plotly.react("barChart", data, layout, { responsive: true, displayModeBar: false });
+        );
+
+
+        // ----------------------------
+        // Plotly Bar Chart
+        // ----------------------------
+
+        Plotly.newPlot(
+
+            "barChart",
+
+            [{
+
+                type: "bar",
+
+                x: [
+                    "Age",
+                    "Exercise Days",
+                    "Sleep Hours",
+                    "BMI"
+                ],
+
+                y: [
+                    payload.age,
+                    payload.exercise_days,
+                    payload.sleep,
+                    payload.bmi
+                ],
+
+                marker: {
+
+                    color: [
+                        "#36c5f0",
+                        "#65d6bd",
+                        "#9b8cff",
+                        "#f2bd62"
+                    ]
+
+                },
+
+                hovertemplate:
+                    "%{x}: %{y}<extra></extra>"
+
+            }],
+
+            {
+
+                paper_bgcolor: "rgba(0,0,0,0)",
+
+                plot_bgcolor: "rgba(9,27,46,0.7)",
+
+                font: {
+                    color: "#edf5ff"
+                },
+
+                xaxis: {
+                    tickangle: -15,
+                    gridcolor: "rgba(180,205,230,.12)"
+                },
+
+                yaxis: {
+                    title: "Lifestyle Factors",
+                    gridcolor: "rgba(180,205,230,.12)"
+                },
+
+                margin: {
+                    t: 25,
+                    r: 20,
+                    b: 80,
+                    l: 50
+                }
+
+            },
+
+            {
+                responsive: true,
+                displayModeBar: false
+            }
+
+        );
+
+
+        // Scroll to results
+
+        document.getElementById(
+            "resultSection"
+        ).scrollIntoView({
+
+            behavior: "smooth",
+
+            block: "start"
+
+        });
+
+
+    } catch(error) {
+
+        errorBox.textContent = error.message;
+
+        errorBox.className = "message error";
+
+        errorBox.style.display = "block";
+
+    } finally {
+
+        button.disabled = false;
+
+        button.textContent = "Predict Health Risk";
+
     }
+
+});
+
 </script>
+
 </body>
 </html>

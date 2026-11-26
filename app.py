@@ -1,63 +1,166 @@
 
-
-from flask import Flask, render_template, request, jsonify
+from pathlib import Path
 import pickle
+import logging
+
 import numpy as np
-import os
+from flask import Flask, jsonify, render_template, request
 
 app = Flask(__name__)
 
-# -----------------------------------
-# Load trained model and encoders
-# -----------------------------------
+BASE_DIR = Path(__file__).resolve().parent
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = BASE_DIR / "health_risk_predictor.pkl"
+ENCODER_PATH = BASE_DIR / "label_encoder.pkl"
 
-MODEL_PATH = os.path.join(BASE_DIR, "health_risk_predictor.pkl")
-ENCODER_PATH = os.path.join(BASE_DIR, "label_encoder.pkl")
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-with open(MODEL_PATH, "rb") as f:
-    model = pickle.load(f)
+# -----------------------------------------
+# Load Model and Encoders
+# -----------------------------------------
 
-with open(ENCODER_PATH, "rb") as f:
-    encoders = pickle.load(f)
+with open(MODEL_PATH, "rb") as file:
+    model = pickle.load(file)
+
+with open(ENCODER_PATH, "rb") as file:
+    encoders = pickle.load(file)
 
 
-# -----------------------------------
-# Home Page
-# -----------------------------------
+# -----------------------------------------
+# Encoder Helper Functions
+# -----------------------------------------
+
+def get_encoder(feature_name):
+
+    aliases = {
+        "diet": ["diet", "diet_encoder"],
+        "stress": ["stress", "stress_level", "stress_encoder"],
+        "smoking": ["smoking", "smoking_encoder"],
+        "alcohol": ["alcohol", "alcohol_encoder"],
+        "family_history": [
+            "family_history",
+            "familyhistory",
+            "family_history_encoder"
+        ],
+        "risk_level": [
+            "risk_level",
+            "risk",
+            "target",
+            "label",
+            "risk_level_encoder"
+        ]
+    }
+
+    if not isinstance(encoders, dict):
+        raise TypeError(
+            "label_encoder.pkl must contain a dictionary of encoders."
+        )
+
+    for key in aliases.get(feature_name, [feature_name]):
+        if key in encoders:
+            return encoders[key]
+
+    lower_map = {
+        str(key).lower(): value
+        for key, value in encoders.items()
+    }
+
+    for key in aliases.get(feature_name, [feature_name]):
+        if key.lower() in lower_map:
+            return lower_map[key.lower()]
+
+    raise KeyError(
+        f"Encoder not found for {feature_name}. "
+        f"Available keys: {list(encoders.keys())}"
+    )
+
+
+def encode_category(feature_name, value):
+
+    encoder = get_encoder(feature_name)
+
+    try:
+        return int(encoder.transform([str(value)])[0])
+
+    except ValueError:
+        raise ValueError(
+            f"Invalid {feature_name}: {value}. "
+            f"Allowed values: {list(encoder.classes_)}"
+        )
+
+
+def decode_risk_label(class_value):
+
+    try:
+        encoder = get_encoder("risk_level")
+
+        return str(
+            encoder.inverse_transform([class_value])[0]
+        )
+
+    except KeyError:
+        return str(class_value)
+
+
+# -----------------------------------------
+# Home Route
+# -----------------------------------------
 
 @app.route("/")
 def home():
+
     return render_template("index.html")
 
 
-# -----------------------------------
-# Prediction API
-# -----------------------------------
+# -----------------------------------------
+# Prediction Route
+# -----------------------------------------
 
 @app.route("/predict", methods=["POST"])
 def predict():
 
     try:
-        data = request.get_json(silent=True) or {}
 
-        # Read numerical inputs
-        age = int(data["age"])
-        exercise_days = int(data["exercise_days"])
-        sleep = int(data["sleep"])
+        data = request.get_json(silent=True)
+
+        if not isinstance(data, dict):
+            return jsonify({
+                "success": False,
+                "error": "Invalid JSON input."
+            }), 400
+
+        required_fields = [
+            "age",
+            "diet",
+            "exercise_days",
+            "sleep",
+            "stress",
+            "bmi",
+            "smoking",
+            "alcohol",
+            "family_history"
+        ]
+
+        missing = [
+            field for field in required_fields
+            if field not in data
+        ]
+
+        if missing:
+            return jsonify({
+                "success": False,
+                "error": f"Missing fields: {', '.join(missing)}"
+            }), 400
+
+        # ---------------------------------
+        # Numerical Input Validation
+        # ---------------------------------
+
+        age = float(data["age"])
+        exercise_days = float(data["exercise_days"])
+        sleep = float(data["sleep"])
         bmi = float(data["bmi"])
-
-        # Read categorical inputs
-        diet = data["diet"]
-        stress = data["stress"]
-        smoking = data["smoking"]
-        alcohol = data["alcohol"]
-        family_history = data["family_history"]
-
-        # -----------------------------------
-        # Validate numerical inputs
-        # -----------------------------------
 
         if not 18 <= age <= 80:
             raise ValueError("Age must be between 18 and 80.")
@@ -66,33 +169,42 @@ def predict():
             raise ValueError("Exercise days must be between 0 and 7.")
 
         if not 2 <= sleep <= 12:
-            raise ValueError("Sleep hours must be between 2 and 12.")
+            raise ValueError("Sleep must be between 2 and 12 hours.")
 
         if not 10 <= bmi <= 40:
             raise ValueError("BMI must be between 10 and 40.")
 
-        # -----------------------------------
-        # Encode categorical features
-        # -----------------------------------
+        # ---------------------------------
+        # Encode Categorical Features
+        # ---------------------------------
 
-        diet_encoded = encoders["diet"].transform([diet])[0]
+        diet_encoded = encode_category(
+            "diet", data["diet"]
+        )
 
-        stress_encoded = encoders["stress"].transform([stress])[0]
+        stress_encoded = encode_category(
+            "stress", data["stress"]
+        )
 
-        smoking_encoded = encoders["smoking"].transform([smoking])[0]
+        smoking_encoded = encode_category(
+            "smoking", data["smoking"]
+        )
 
-        alcohol_encoded = encoders["alcohol"].transform([alcohol])[0]
+        alcohol_encoded = encode_category(
+            "alcohol", data["alcohol"]
+        )
 
-        family_history_encoded = encoders[
-            "family_history"
-        ].transform([family_history])[0]
+        family_history_encoded = encode_category(
+            "family_history", data["family_history"]
+        )
 
-        # -----------------------------------
-        # Prepare model input
-        # Maintain original training feature order
-        # -----------------------------------
+        # ---------------------------------
+        # Prepare Input Array
+        # ---------------------------------
 
-        input_data = [[
+        # Feature order must match training.
+
+        input_array = np.array([[
             age,
             diet_encoded,
             exercise_days,
@@ -102,110 +214,94 @@ def predict():
             smoking_encoded,
             alcohol_encoded,
             family_history_encoded
-        ]]
+        ]], dtype=float)
 
-        input_array = np.array(input_data)
-
-        # -----------------------------------
+        # ---------------------------------
         # Make Prediction
-        # -----------------------------------
+        # ---------------------------------
 
-        prediction = model.predict(input_array)
+        prediction = model.predict(input_array)[0]
+
+        if not hasattr(model, "predict_proba"):
+            raise RuntimeError(
+                "The trained model does not support predict_proba()."
+            )
 
         probabilities = model.predict_proba(input_array)[0]
 
-        predicted_class = prediction[0]
-
-        risk_label = encoders["risk_level"].inverse_transform(
-            [predicted_class]
-        )[0]
-
-        # -----------------------------------
-        # Model confidence
-        # -----------------------------------
-
-        risk_percentage = float(np.max(probabilities) * 100)
-
-        # -----------------------------------
-        # Pie Chart Data
-        # Probability of every risk category
-        # -----------------------------------
+        # ---------------------------------
+        # Dynamic Risk Distribution
+        # ---------------------------------
 
         risk_distribution = []
 
         for class_value, probability in zip(
-            model.classes_, probabilities
+            model.classes_,
+            probabilities
         ):
 
-            label = encoders["risk_level"].inverse_transform(
-                [class_value]
-            )[0]
+            class_label = decode_risk_label(class_value)
 
             risk_distribution.append({
-                "label": str(label),
-                "percentage": round(float(probability) * 100, 2)
+                "label": class_label,
+                "percentage": round(
+                    float(probability) * 100, 2
+                )
             })
 
-        # -----------------------------------
-        # Lifestyle Factors Chart
-        # Numerical features
-        # -----------------------------------
+        # ---------------------------------
+        # Predicted Class and Confidence
+        # ---------------------------------
 
-        lifestyle_factors = {
-            "Exercise Days": exercise_days,
-            "Sleep Hours": sleep,
-            "BMI": bmi
-        }
+        predicted_label = decode_risk_label(prediction)
 
-        # -----------------------------------
-        # Categorical Lifestyle Information
-        # Display original values, not encoded values
-        # -----------------------------------
+        predicted_probability = max(
+            probabilities
+        ) * 100
 
-        categorical_factors = {
-            "Diet": str(diet),
-            "Stress": str(stress),
-            "Smoking": str(smoking),
-            "Alcohol": str(alcohol),
-            "Family History": str(family_history)
-        }
-
-        # -----------------------------------
-        # Final Response
-        # -----------------------------------
+        # ---------------------------------
+        # JSON Response
+        # ---------------------------------
 
         return jsonify({
 
             "success": True,
 
-            "risk_label": str(risk_label),
+            "risk_label": predicted_label,
 
-            # Model confidence, NOT actual health risk percentage
-            "risk_percentage": round(risk_percentage, 2),
+            "risk_percentage": round(
+                float(predicted_probability), 2
+            ),
 
-            # Pie chart
-            "risk_distribution": risk_distribution,
-
-            # Lifestyle bar chart
-            "factors": lifestyle_factors,
-
-            # Readable categorical values
-            "categorical_factors": categorical_factors
+            "risk_distribution": risk_distribution
 
         })
 
-    except Exception as e:
+    except (ValueError, TypeError, KeyError) as error:
 
         return jsonify({
             "success": False,
-            "error": str(e)
+            "error": str(error)
         }), 400
 
+    except Exception:
 
-# -----------------------------------
+        logger.exception("Prediction error")
+
+        return jsonify({
+            "success": False,
+            "error": "Prediction failed. Check the Flask terminal."
+        }), 500
+
+
+# -----------------------------------------
 # Run Flask Application
-# -----------------------------------
+# -----------------------------------------
 
 if __name__ == "__main__":
-    app.run(debug=True)
 
+    app.run(
+        host="127.0.0.1",
+        port=5000,
+        debug=True
+    )
